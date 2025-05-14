@@ -1,9 +1,9 @@
-# L-UPESF: LLM User Prompt Evaluation Scoring Framework
-# Version: 0.3.2 (Minified, Self-Contained for Evaluation)
+# LUPES: LLM User Prompt Evaluation Scoring Framework
+# Version: 0.3.2
 
 # --- Framework Metadata ---
 Framework:
-  name: L-UPESF
+  name: LUPES
   full_name: LLM User Prompt Evaluation Scoring Framework
   version: 0.3.2
   description: A YAML-based framework for scoring LLM user prompt quality.
@@ -13,7 +13,7 @@ scoring_scale:
   range: [0.0, 1.0]
   description: A score of 1.0 represents a perfect user prompt.
 
-# --- Core Formula Definition (STRICTLY MATHEMATICAL) ---
+# --- Core Formula Definition ---
 formula: |
   Overall Score = Weighted_Sum_Form_Metrics * Weighted_Product_PSV_Score
 
@@ -427,12 +427,12 @@ evaluation_output_definition:
   description: Recommended JSON structure for evaluation output.
   format_type: JSON
   json_schema_description: |
-    The JSON object should contain a top-level key, e.g., "lupesf_evaluation",
+    The JSON object should contain a top-level key, e.g., "lupes_evaluation",
     whose value is an object with evaluation metadata and detailed scores.
   json_example_template: |
     {
-      "lupesf_evaluation": {
-        "framework_name": "L-UPESF",
+      "lupes_evaluation": {
+        "framework_name": "LUPES",
         "framework_version": "0.3.2",
         "evaluation_timestamp": "YYYY-MM-DDTHH:MM:SSZ",
         "evaluator": {
