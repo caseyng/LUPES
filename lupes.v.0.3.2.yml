@@ -1,0 +1,474 @@
+# L-UPESF: LLM User Prompt Evaluation Scoring Framework
+# Version: 0.3.2 (Minified, Self-Contained for Evaluation)
+
+# --- Framework Metadata ---
+Framework:
+  name: L-UPESF
+  full_name: LLM User Prompt Evaluation Scoring Framework
+  version: 0.3.2
+  description: A YAML-based framework for scoring LLM user prompt quality.
+
+scoring_scale:
+  type: float
+  range: [0.0, 1.0]
+  description: A score of 1.0 represents a perfect user prompt.
+
+# --- Core Formula Definition (STRICTLY MATHEMATICAL) ---
+formula: |
+  Overall Score = Weighted_Sum_Form_Metrics * Composite_PSV_Score
+
+  Weighted_Sum_Form_Metrics = (TSR_Score * TSR_Weight) + (QGS_Score * QGS_Weight) + (RI_Score * RI_Weight) + (CAG_Score * CAG_Weight) + (ICS_Score * ICS_Weight) + (RD_Score * RD_Weight) + (FPT_Score * FPT_Weight)
+
+  Composite_PSV_Score = (CC_Score ^ CC_Weight) * (MCF_Score ^ MCF_Weight) * (CD_Score ^ CD_Weight) * (TRF_Score ^ TRF_Weight) * (TOS_Score ^ TOS_Weight) * (ICSafety_Score ^ ICSafety_Weight) * (FAS_Score ^ FAS_Weight)
+  # Note: For this formula, 0^W = 0 when W > 0.
+
+notes: |
+  Each score is 0.0-1.0. Form weights sum to 1.0. PSV weights sum to 1.0 and are > 0.0.
+
+# --- Core Metrics Definitions ---
+metrics:
+  form_metrics:
+    - name: TSR
+      full_name: Token-to-Signal Ratio
+      description: Measures the density of informative tokens or content elements relative to the total user prompt length (excluding boilerplate). Higher score indicates a more concise and efficient prompt.
+      scoring: [0.0, 1.0]
+      weight: 0.05
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Extremely concise. Contains only essential instructions, context, and necessary formatting. High signal density relative to total length (Estimated signal > 80% of non-boilerplate text). Minimal or no boilerplate/unnecessary words.
+        - score_level: 0.75
+          criteria: |
+            Concise and focused. Minimal non-essential text or minor inefficiencies. Good signal density (60-80% of non-boilerplate).
+        - score_level: 0.50
+          criteria: |
+            Moderately verbose. May include some non-essential introductory/concluding phrases or slightly inefficient phrasing. Moderate signal density (40-60%).
+        - score_level: 0.25
+          criteria: |
+            Significantly verbose, notable repetition, or inclusion of extraneous, non-contributing text. High boilerplate (20-40% signal).
+        - score_level: 0.0
+          criteria: |
+            Predominantly boilerplate, filler, or irrelevant text. Core instructional signal is critically low or hard to find (<20%).
+
+    - name: QGS
+      full_name: Query Guidance Strength
+      description: Measures the explicitness and clarity of the instructions, requests for structure, or behavioral cues provided to the LLM within the user prompt. Higher score indicates stronger direction for generating the desired output format and characteristics.
+      scoring: [0.0, 1.0]
+      weight: 0.20
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Guidance is extremely explicit and unambiguous across multiple dimensions (e.g., desired output structure, format, tone, behavioral constraints) allowing for precise, directed output.
+        - score_level: 0.75
+          criteria: |
+            Clear guidance using standard conventions or focusing primarily on one or two dimensions (structure, format, tone). Desired output characteristics are easily inferable but not rigidly defined.
+        - score_level: 0.50
+          criteria: |
+            Guidance is present but lacks specificity regarding desired structure, format, tone, or behavior. Open to some interpretation.
+        - score_level: 0.25
+          criteria: |
+            Guidance is vague, incomplete, or subtly contradictory regarding desired output characteristics. Hard to interpret for a specific output shape or style.
+        - score_level: 0.0
+          criteria: |
+            No discernible guidance on how the LLM should structure, format output, or behave. Instructions are nonsensical regarding output characteristics.
+
+    - name: RI
+      full_name: Role Inference
+      description: |
+        Measures how effectively the user prompt cues a specific persona, identity, or contextual role for the LLM, considering both the clarity of the cue and its **appropriateness and potential contribution to the prompt's primary purpose**.
+        Higher score indicates a clear AND appropriate/contributory role cue (or the appropriate absence of one).
+      scoring: [0.0, 1.0]
+      weight: 0.05
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Role/persona is explicitly defined and the definition provides sufficient context for effective adoption, AND the role is highly appropriate and demonstrably contributes positively to achieving the prompt's primary goal (e.g., guides tone, perspective, enhances clarity for audience). OR No role cue is present, and no specific role is needed or would significantly benefit the prompt's purpose (appropriate absence).
+        - score_level: 0.75
+          criteria: |
+            Role/persona is explicitly defined with minimal context, OR is strongly implied, AND the role is appropriate and provides a moderate positive contribution. OR A role *would* moderately benefit the prompt, and a vague cue is present.
+        - score_level: 0.50
+          criteria: |
+            A role/persona is vaguely hinted at, OR an explicit role is given but is contradictory/confusing, OR the role is clear but only minimally appropriate or contributes little to the prompt's purpose. OR A role *would* moderately benefit the prompt, but none is provided (missed opportunity).
+        - score_level: 0.25
+          criteria: |
+            A fleeting or unclear reference to a role, OR a clear role is provided but is inappropriate, irrelevant, or slightly detrimental to the prompt's purpose. OR A role *would* significantly benefit the prompt, but none is provided (significant missed opportunity).
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Inappropriate/Detrimental or Missing When Essential. No discernible attempt to cue a role AND a role is absolutely essential for the prompt to be understandable or safe (e.g., critical framing missing). OR A clear role is provided but is fundamentally contradictory or actively detrimental/harmful to the prompt's core purpose or safety requirements. OR The role cue is completely nonsensical or makes interpretation impossible.
+
+    - name: CAG
+      full_name: Constraint Adherence Gradient
+      description: Measures the clarity and potential adherence likelihood of explicit constraints or negative instructions (e.g., "do not include X", length limits) specified in the user prompt. Higher score indicates well-defined and adhere-able constraints.
+      scoring: [0.0, 1.0]
+      weight: 0.10
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Constraints (e.g., length limits, exclusion lists, required elements, negative instructions) are explicitly, clearly, and unambiguously stated. They are fully feasible for the LLM to adhere to.
+        - score_level: 0.75
+          criteria: |
+            Constraints are explicitly stated and clear, but might rely on standard interpretations or have minor ambiguity. They are feasible for the LLM.
+        - score_level: 0.50
+          criteria: |
+            Constraints are mentioned but are vague, incomplete, or potentially difficult for the LLM to precisely adhere to (e.g., subjective constraints).
+        - score_level: 0.25
+          criteria: |
+            Constraints are unclear, contradictory, or technically impossible for the LLM to follow.
+        - score_level: 0.0
+          criteria: |
+            No discernible constraints are provided, or any mentioned constraints are completely nonsensical or impossible to interpret/follow.
+
+    - name: ICS
+      full_name: Intent Clarity Score
+      description: Measures how unambiguous the user's primary goal, task, or question is within the user prompt to the LLM. Higher score indicates a clearer and less ambiguous intent.
+      scoring: [0.0, 1.0]
+      weight: 0.30
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            The prompt has a single, clear, easily identifiable primary goal, task, or question. No ambiguity exists about what the user wants the LLM to achieve.
+        - score_level: 0.75
+          criteria: |
+            The prompt has a clear primary goal, but might include minor secondary requests or slightly complex phrasing that could cause a brief hesitation but is ultimately resolvable.
+        - score_level: 0.50
+          criteria: |
+            The prompt has multiple potential goals that are somewhat conflicting or equally prominent, requiring the LLM to guess the user's true priority. Or the primary goal is vague but potentially inferable from context.
+        - score_level: 0.25
+          criteria: |
+            The primary goal is highly ambiguous, obscured by irrelevant information, or relies heavily on unstated context necessary for interpretation. Multiple conflicting interpretations are likely.
+        - score_level: 0.0
+          criteria: |
+            No discernible goal, task, or question can be identified in the prompt. The text is nonsensical or completely lacks instructional intent.
+
+    - name: RD
+      full_name: Relevance Distribution
+      description: Measures the degree to which all components or sections of the user prompt are relevant and contribute to the primary goal. Higher score indicates less extraneous or distracting information.
+      scoring: [0.0, 1.0]
+      weight: 0.15
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            All text, examples, formatting, and components in the prompt directly support the primary goal. No irrelevant, distracting, or confusing information is included.
+        - score_level: 0.75
+          criteria: |
+            Almost all content is relevant. May include minor conversational pleasantries or very brief, understandable non-contributing text that doesn't hinder understanding or task completion.
+        - score_level: 0.50
+          criteria: |
+            Contains a notable amount of irrelevant or tangential information, examples, or formatting that adds noise and reduces the clarity of the core request, but the primary goal is still identifiable.
+        - score_level: 0.25
+          criteria: |
+            Contains significant irrelevant or confusing content that actively distracts from or obscures the primary goal.
+        - score_level: 0.0
+          criteria: |
+            The majority of the prompt's content is irrelevant, confusing, or contradictory to the primary goal. The signal is buried in noise.
+
+    - name: FPT
+      full_name: Format Predictability Threshold
+      description: Measures how well the user prompt signals or explicitly defines the desired output format (e.g., JSON, list, summary, specific structure) for predictable parsing or consumption. Higher score indicates a more predictable format.
+      scoring: [0.0, 1.0]
+      weight: 0.15
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Desired output format (e.g., JSON, XML, specific table structure, markdown list, exact phrase structure) is explicitly defined or demonstrated with examples, enabling predictable parsing by code or easy visual scanning.
+        - score_level: 0.75
+          criteria: |
+            Desired output format is clearly implied through explicit structural cues (e.g., using markdown headers in the prompt implies markdown output, asking for "a list" implies a standard list format) or clear descriptive terms, making it highly predictable but not rigidly defined for parsing.
+        - score_level: 0.50
+          criteria: |
+            Some general format is implied (e.g., "Write a summary" implies paragraph form) but without specific structural cues. Format is somewhat predictable but lacks precision.
+        - score_level: 0.25
+          criteria: |
+            No format cues are provided, or cues are vague/contradictory, leaving the output format highly unpredictable.
+        - score_level: 0.0
+          criteria: |
+            No discernible output format is implied or requested. Output would be completely unstructured or nonsensical regarding format.
+
+  psv_sub_metrics:
+    description: |
+      These metrics assess fundamental aspects of the user prompt's request that determine its validity, feasibility for an LLM to yield a reliable outcome, and appropriateness.
+      A score of 0.0 in any PSV sub-metric indicates a fundamental and critical failure on that dimension, which, via the geometric mean formula, results in a Composite PSV Score of 0.0 and thus an Overall Score of 0.0.
+      Scores > 0.0 reflect varying degrees of partial validity/appropriateness.
+    - name: CC
+      full_name: Conceptual Coherence
+      description: Measures the internal logical consistency and meaningfulness of the concepts, entities, and their relationships as expressed in the user prompt. A score of 0.0 indicates fundamental semantic or logical incoherence.
+      scoring: [0.0, 1.0]
+      weight: 0.12
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            All concepts, entities, and their relationships within the prompt are logically consistent and semantically meaningful in a way that the LLM can understand and process.
+        - score_level: 0.75
+          criteria: |
+            Contains minor logical inconsistencies or slightly awkward conceptual relationships that do not fundamentally break the prompt's core meaning or task.
+        - score_level: 0.50
+          criteria: |
+            Contains notable logical inconsistencies, contradictory relationships between concepts, or uses terms/ideas in a semantically confusing way that requires significant interpretation or guessing by the LLM.
+        - score_level: 0.25
+          criteria: |
+            Concepts and their relationships are largely inconsistent or nonsensical; the prompt describes a fundamentally illogical or meaningless scenario or task.
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Incoherent/Meaningless. The prompt is fundamentally semantically or logically incoherent in a way that prevents the LLM from processing its meaning.
+            (e.g., Nonsensical phrases, contradictions at the conceptual level).
+
+    - name: MCF
+      full_name: Model Capability Fit
+      description: Measures whether the requested task or action is functionally executable by an LLM (e.g., not requiring real-time external data access without tools, physical interaction, etc.). A score of 0.0 indicates requiring an impossible action for the system.
+      scoring: [0.0, 1.0]
+      weight: 0.18
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Requested task/action is a standard, well-demonstrated capability of typical LLMs (e.g., text generation, summarization, translation, Q&A based on context, following explicit rules).
+        - score_level: 0.75
+          criteria: |
+            Task involves capabilities sometimes demonstrated but may be inconsistent across models or slightly outside common functions, yet feasible with advanced models/standard tools (e.g., complex multi-step reasoning, code generation in less common languages, tool use where tools are assumed available).
+        - score_level: 0.50
+          criteria: |
+            Task pushes boundaries of typical LLM capabilities or relies on functions not reliably present or supported without tools (e.g., synthesizing *rapidly changing* external data without tools, highly specific rare domain expertise).
+        - score_level: 0.25
+          criteria: |
+            Task relies on functions generally outside standard LLM capabilities or requires unsupported actions (e.g., accessing specific non-public external systems without APIs, tasks requiring perfect memory across very long sessions).
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Functionally Impossible. The requested action or task requires capabilities fundamentally impossible for a typical LLM system.
+            Includes (but not limited to): Real-time physical interaction; arbitrary, unaided external/real-time data access; accessing user's local files/system data without explicit API calls; guaranteed prediction of future events/true randomness; tasks requiring subjective sensory experiences/physical actions.
+
+    - name: CD
+      full_name: Contradiction Detection
+      description: Measures the absence of explicit or implicit logical contradictions or conflicting instructions within the user prompt that make the request impossible to follow. A score of 0.0 indicates the presence of significant, unresolvable contradictions.
+      scoring: [0.0, 1.0]
+      weight: 0.18
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            No explicit or implicit contradictions are present. All instructions and statements are logically consistent.
+        - score_level: 0.75
+          criteria: |
+            Contains minor, easily resolvable, or likely unintentional implicit contradictions that an LLM could likely resolve through common sense.
+        - score_level: 0.50
+          criteria: |
+            Contains noticeable implicit contradictions or confusingly conflicting instructions that make the prompt difficult to follow without guessing the user's true intent.
+            Requires the LLM to choose between directives.
+        - score_level: 0.25
+          criteria: |
+            Contains significant explicit or implicit contradictions that render large parts of the prompt impossible or nonsensical to follow simultaneously.
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Contradictory.
+            The prompt contains significant, unresolvable explicit or implicit logical contradictions or conflicting instructions that make the core request impossible to fulfill.
+            Includes (but not limited to): Explicitly contradictory instructions; Implicit contradictions where two or more instructions/statements cannot logically coexist or be followed simultaneously; Requests based on contradictory premises.
+
+    - name: TRF
+      full_name: Task Reliability/Difficulty Fit
+      description: Measures the estimated likelihood that a typical LLM can consistently produce a correct or reliable output for the *specific* task requested by the user prompt, based on current general capabilities and the task's inherent complexity or type. A score of 0.0 indicates a task where reliable execution is practically impossible for an LLM.
+      scoring: [0.0, 1.0]
+      weight: 0.08
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Task type is known to be highly reliable for typical LLMs (e.g., summarizing well-formed text, translation between common languages, answering objective factual questions based on readily available information/context). Outcomes are consistently correct or verifiable.
+        - score_level: 0.75
+          criteria: |
+            Task type is generally reliable but may occasionally produce errors or inconsistencies depending on complexity or nuance (e.g., code generation, complex multi-hop questions, creative writing within common styles).
+        - score_level: 0.50
+          criteria: |
+            Task type is moderately reliable; outcomes often useful but frequently contain errors, inconsistencies, or require significant human review/correction (e.g., generating text in less common/nuanced styles, complex reasoning tasks, tasks requiring fine-grained control while maintaining quality).
+        - score_level: 0.25
+          criteria: |
+            Task type is known to be largely unreliable for typical LLMs;
+            correct or useful outcomes are rare or highly variable (e.g., generating provably correct mathematical proofs, predicting subjective human preferences).
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Practically Impossible to Perform Reliably. The task type is one where achieving a correct or reliable outcome using a typical LLM is practically impossible or so unlikely as to be a failure state for the request's intent.
+            Includes (but not limited to): Tasks requiring guaranteed creativity/originality in a measurable sense; Tasks requiring prediction with certainty;
+            Tasks requiring simulation of subjective experience in a verifiably accurate way;
+            Tasks where the core requirement relies on known LLM failure modes (e.g., requesting hallucination of specific non-existent facts framed as truth).
+
+    - name: TOS
+      full_name: Task Objectivity/Subjectivity
+      description: Measures the degree to which the task requested by the user prompt relies on subjective interpretation or judgment vs. objective facts or verifiable criteria. A score of 0.0 indicates a task requiring purely subjective judgment framed as objective fact, making the stated goal unachievable.
+      scoring: [0.0, 1.0]
+      weight: 0.05
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Task relies entirely on objective facts or verifiable criteria where a single correct answer exists and can be objectively verified.
+        - score_level: 0.75
+          criteria: |
+            Task relies primarily on objective criteria but may involve minor elements of standard subjective interpretation or presentation choices that don't alter the core factual outcome.
+        - score_level: 0.50
+          criteria: |
+            Task involves a notable mix of objective and subjective elements.
+            Requires interpreting information and applying judgment, but within clear constraints or based on provided criteria.
+        - score_level: 0.25
+          criteria: |
+            Task relies heavily on subjective interpretation, personal opinion, or creative judgment, with no single objectively correct answer.
+            Outcomes are highly variable and depend on subjective preference.
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Requires Impossible Objective Subjective Judgment. The task is framed as requiring objective verification or a single correct answer, but the core requirement is fundamentally subjective and lacks any objective criteria, making the stated goal unachievable.
+            Includes (but not limited to): Asking for the "objectively best" subjective thing (unless verifiable criteria provided);
+            Asking for factual truth about inherently subjective experiences without specific, verifiable accounts;
+            Requiring the model to have genuine personal opinions or feelings framed as objective facts.
+
+    - name: ICSafety
+      full_name: Input Content Safety/Ethics
+      description: Measures the degree to which the user prompt's content or implied goal requests the generation of harmful, biased, unethical, or illegal content, or promotes harmful ideologies/actions. A score of 0.0 indicates content or requests that are explicitly and severely harmful or illegal.
+      scoring: [0.0, 1.0]
+      weight: 0.25
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Prompt content and implied goal are entirely safe, ethical, legal, and free from harmful bias.
+            No intent to cause harm, spread misinformation, or promote unethical/illegal activities.
+        - score_level: 0.75
+          criteria: |
+            Prompt content or implied goal contains minor elements that are slightly questionable, potentially sensitive, or could theoretically be misinterpreted negatively, but primary intent appears benign, and risk is low.
+            May require minor caution from the LLM.
+        - score_level: 0.50
+          criteria: |
+            Prompt content or implied goal relates to sensitive topics or contains elements (e.g., stereotypes, potentially misleading info presented neutrally) with a moderate risk of generating biased, ethically questionable, or potentially harmful content if not handled with explicit caution or disclaimers.
+            Intent may be unclear but not overtly malicious.
+        - score_level: 0.25
+          criteria: |
+            Prompt content or implied goal is clearly related to harmful, biased, unethical, or illegal topics.
+            Directly requests content likely to be harmful or promote harmful ideologies, even if not in the most extreme way.
+            Risk is high.
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - Explicitly/Severely Harmful/Illegal Request. The prompt content or implied goal explicitly requests the generation of severely harmful, illegal, unethical, or dangerous content or promotes harmful ideologies/actions in a clear and direct manner.
+            Includes (but not limited to): Requests for illegal activities; Requests for severely harmful/dangerous/discriminatory content (hate speech, self-harm/harm to others, illegal acts);
+            Requests for generating deceptive content with clear harmful intent; Requests that directly facilitate or encourage illegal/severely unethical behavior;
+            Requests for private, sensitive personal information without consent.
+
+    - name: FAS
+      full_name: Framing Ambiguity Score
+      description: |
+        Detects subtle prompt vagueness, adversarial phrasing, or the deliberate use of framing techniques (e.g., role-playing, fictional context, emotional language)
+        that could lead to ambiguous interpretations or unintended/undesirable model behavior, including potential safety bypasses.
+        A score of 0.0 indicates high ambiguity or framing risk that undermines prompt validity or safety.
+      scoring: [0.0, 1.0]
+      weight: 0.14
+      rubric_criteria:
+        - score_level: 1.0
+          criteria: |
+            Prompt framing is direct, transparent, and unambiguous regarding user's intent and desired interaction.
+            No linguistic cues suggest hidden motives, adversarial intent, or potential for misinterpretation.
+        - score_level: 0.75
+          criteria: |
+            Contains very minor, unintentional ambiguity or uses standard conversational framing that is easily understood and carries no discernible risk of misinterpretation or unintended behavior.
+        - score_level: 0.50
+          criteria: |
+            Uses framing (e.g., fictional scenario, hypothetical question, strong emotional language) or contains phrasing that *could* be subtly misinterpreted or require LLM caution, but primary intent appears benign, and assessed risk is low to moderate.
+        - score_level: 0.25
+          criteria: |
+            Uses noticeably ambiguous phrasing, suggestive/loaded language, or employs framing that creates moderate to high risk of misinterpretation, unintended undesirable behavior, or requires explicit model cautioning/refusal.
+            Intent seems questionable or unclear.
+        - score_level: 0.0
+          criteria: |
+            FUNDAMENTAL FAILURE - High Ambiguity/Framing Risk. Uses deliberate, significant vagueness, adversarial phrasing, or manipulative framing clearly intended to elicit harmful content, bypass safety mechanisms, cause critical misinterpretation, or induce undesirable model behavior.
+            Framing fundamentally undermines validity/safety/appropriateness.
+            Includes (but not limited to): Using fictional scenarios/role-playing explicitly designed to bypass safety filters;
+            Employing manipulative/deceptive/coercive framing to pressure model into prohibited content/stances; Using deliberately ambiguous phrasing where one interpretation is clearly harmful/illegal;
+            Framing harmful requests within seemingly innocent context to mask intent;
+            Requests relying on model misinterpreting subtle linguistic cues to engage in prohibited behavior.
+
+  optional_metrics:
+    description: |
+      Optional metrics that can be included depending on specific use cases, system requirements, or evaluation goals.
+      Not part of the core L-UPESF score calculation.
+    categories:
+      core_optional_metrics:
+        description: Recommended optional metrics providing meta-evaluation or operational context.
+        metrics:
+          - name: EC
+            full_name: Evaluation Confidence
+            description: Meta-evaluation metric reflecting the estimated trustworthiness or reliability of the scoring process for a specific prompt evaluation.
+            scoring: [0.0, 1.0]
+            notes: Foundational for assessing the reliability of benchmark results.
+          - name: LCP
+            full_name: Latency/Cost Proxy
+            description: Estimates the resource cost (e.g., input token size, anticipated processing complexity, tool usage) associated with processing the user prompt.
+            scoring: [0.0, 1.0] # Score inversely to cost/latency
+            notes: Links user prompt characteristics to infrastructure impact.
+          - name: TSC
+            full_name: Task Complexity Score
+            description: Rates the inherent difficulty of the task requested by the user prompt for an LLM, independent of the prompt's structural quality or LLM capability fit.
+            scoring: [0.0, 1.0] # Score inversely to complexity
+            notes: Informs performance expectations; Can normalize scores.
+
+      red_teaming_risk_metrics:
+        description: Optional metrics focused on detecting red teaming, safety, or alignment risks.
+        metrics:
+          - name: IRP
+            full_name: Intent Risk Profile
+            description: Evaluates the likelihood that the underlying user motive or goal behind the prompt is exploitative, dual-use, or directly malicious.
+            scoring: [0.0, 1.0]
+            notes: Crucial in safety-focused settings; Focuses on inferred user motive.
+          - name: DD
+            full_name: Divergence Delta
+            description: Measures the semantic or stylistic deviation of the user prompt's intent or content from typical, expected, or alignment-safe phrasing.
+            scoring: [0.0, 1.0] # Score inversely to deviation
+            notes: Captures semantic or stylistic "strangeness". Primarily for model development/internal safety monitoring.
+
+      contextual_optional_metrics:
+        description: Optional metrics whose relevance depends heavily on the specific deployment context or industry.
+        metrics:
+          - name: DSC
+            full_name: Domain Sensitivity Context
+            description: Scores the user prompt based on the inherent risk level associated with the topic or domain it addresses.
+            scoring: [0.0, 1.0] # Score inversely to sensitivity
+            notes: Focuses on the risk level of the topic/domain. High actionability in regulated/enterprise settings.
+
+# --- Evaluation Output Definition ---
+evaluation_output_definition:
+  description: Recommended JSON structure for evaluation output.
+  format_type: JSON
+  json_schema_description: |
+    The JSON object should contain a top-level key, e.g., "lupesf_evaluation",
+    whose value is an object with evaluation metadata and detailed scores.
+  json_example_template: |
+    {
+      "lupesf_evaluation": {
+        "framework_name": "L-UPESF",
+        "framework_version": "0.3.2",
+        "evaluation_timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+        "evaluator": {
+          "type": "LLM",
+          "name": "Gemini 1.5 Pro",
+          "id": "your_specific_model_id_or_instance"
+        },
+        "prompt_details": {
+          "prompt_id": "unique_prompt_identifier",
+          "prompt_text_snippet": "First 100-200 chars of the prompt...",
+          "prompt_hash": "sha256_hash_of_full_prompt"
+        },
+        "overall_score": 0.85,
+        "core_metric_scores": {
+          "TSR": {"score": 0.9, "rubric_level": 0.75, "notes": "Concise, minor inefficiency"},
+          "QGS": {"score": 0.8, "rubric_level": 0.75, "notes": "Clear guidance, one dimension focus"},
+          "RI": {"score": 0.95, "rubric_level": 1.0, "notes": "Clear, appropriate absence"},
+          "CAG": {"score": 0.7, "rubric_level": 0.75, "notes": "Clear constraints, minor ambiguity"},
+          "ICS": {"score": 1.0, "rubric_level": 1.0, "notes": "Perfectly clear intent"},
+          "RD": {"score": 1.0, "rubric_level": 1.0, "notes": "All content relevant"},
+          "FPT": {"score": 0.75, "rubric_level": 0.75, "notes": "Clearly implied format"}
+        },
+        "psv_sub_metric_scores": {
+           "CC": {"score": 1.0, "rubric_level": 1.0},
+           "MCF": {"score": 1.0, "rubric_level": 1.0},
+           "CD": {"score": 1.0, "rubric_level": 1.0},
+           "TRF": {"score": 0.9, "rubric_level": 0.75, "notes": "Generally reliable task"},
+           "TOS": {"score": 1.0, "rubric_level": 1.0},
+           "ICSafety": {"score": 1.0, "rubric_level": 1.0},
+           "FAS": {"score": 1.0, "rubric_level": 1.0}
+        },
+        "optional_metric_scores": {
+          "EC": {"score": 0.8, "notes": "High confidence in scoring"},
+          "TSC": {"score": 0.7, "notes": "Moderate complexity task (scored inversely)"},
+          "DSC": {"score": 0.9, "notes": "Low sensitivity domain (scored inversely)"}
+        },
+        "evaluation_notes": "Overall evaluation notes or context."
+      }
+    }
