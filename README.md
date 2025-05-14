@@ -40,14 +40,15 @@ To understand and apply the LUPES framework, begin by exploring the core documen
 3. Changelog: Tracks the version history and specific changes made to the framework.
 4. Proposed Enhancements: Outlines planned future work and potential improvements.
 
-## Documentation
+## Documents
 - [LUPES Whitepaper](LUPES_Whitepaper.md)
 - [LUPES YAML Definition](lupes_latest.yaml)
 - [Changelog](Changelog.md)
 - [Proposed Enhancements](Proposed_Enhancements.md)
+- [Rationale for a Prompt Evaluation Framework](Rationale_for_a_Prompt_Evaluation_Framework.md)
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details.
 
 ## Contributing
-We welcome contributions to the LUPES framework! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to get involved.
+We welcome contributions to the LUPES framework! Please see the [CONTRIBUTING](CONTRIBUTING.md) file for details on how to get involved.
