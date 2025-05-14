@@ -41,10 +41,10 @@ To understand and apply the LUPES framework, begin by exploring the core documen
 4. Proposed Enhancements: Outlines planned future work and potential improvements.
 
 ## Documentation
-- [Link to Whitepaper File](LUPES_Whitepaper.md)
-- [Link to YAML Definition File](lupes_v0.3.2.yaml)
-- [Link to Changelog File](CHANGELOG.md)
-- [Link to Proposed Enhancements File](Proposed_Enhancements.md)
+- [LUPES Whitepaper](LUPES_Whitepaper.md)
+- [LUPES YAML Definition](lupes_v0.3.2.yaml)
+- [Changelog](CHANGELOG.md)
+- [Proposed Enhancements](Proposed_Enhancements.md)
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
