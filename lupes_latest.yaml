@@ -15,11 +15,11 @@ scoring_scale:
 
 # --- Core Formula Definition (STRICTLY MATHEMATICAL) ---
 formula: |
-  Overall Score = Weighted_Sum_Form_Metrics * Composite_PSV_Score
+  Overall Score = Weighted_Sum_Form_Metrics * Weighted_Product_PSV_Score
 
   Weighted_Sum_Form_Metrics = (TSR_Score * TSR_Weight) + (QGS_Score * QGS_Weight) + (RI_Score * RI_Weight) + (CAG_Score * CAG_Weight) + (ICS_Score * ICS_Weight) + (RD_Score * RD_Weight) + (FPT_Score * FPT_Weight)
 
-  Composite_PSV_Score = (CC_Score ^ CC_Weight) * (MCF_Score ^ MCF_Weight) * (CD_Score ^ CD_Weight) * (TRF_Score ^ TRF_Weight) * (TOS_Score ^ TOS_Weight) * (ICSafety_Score ^ ICSafety_Weight) * (FAS_Score ^ FAS_Weight)
+  Weighted_Product_PSV_Score = (CC_Score ^ CC_Weight) * (MCF_Score ^ MCF_Weight) * (CD_Score ^ CD_Weight) * (TRF_Score ^ TRF_Weight) * (TOS_Score ^ TOS_Weight) * (ICSafety_Score ^ ICSafety_Weight) * (FAS_Score ^ FAS_Weight)
   # Note: For this formula, 0^W = 0 when W > 0.
 
 notes: |
@@ -187,7 +187,7 @@ metrics:
   psv_sub_metrics:
     description: |
       These metrics assess fundamental aspects of the user prompt's request that determine its validity, feasibility for an LLM to yield a reliable outcome, and appropriateness.
-      A score of 0.0 in any PSV sub-metric indicates a fundamental and critical failure on that dimension, which, via the geometric mean formula, results in a Composite PSV Score of 0.0 and thus an Overall Score of 0.0.
+      A score of 0.0 in any PSV sub-metric indicates a fundamental and critical failure on that dimension, which, via the geometric mean formula, results in a Weighted Product PSV Score of 0.0 and thus an Overall Score of 0.0.
       Scores > 0.0 reflect varying degrees of partial validity/appropriateness.
     - name: CC
       full_name: Conceptual Coherence
