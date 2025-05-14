@@ -15,7 +15,13 @@ Purpose
 A score of 0.0 represents a fundamentally flawed user prompt (zero semantic/functional validity, critical safety issue, etc.). Scores between 0.0 and 1.0 indicate varying degrees of quality.
 
 ### Scoring Formula
-The core formula combines Form Metrics and PSV Sub-Metrics. Each core metric and sub-metric score is from 0.0 to 1.0. Weights for Form Metrics sum to 1.0. Weights for PSV Sub-Metrics sum to 1.0 and each must be > 0.0. The specific formula and current weights are defined in the versioned YAML definition file.
+The core formula combines Form Metrics and PSV Sub-Metrics. Each core metric and sub-metric score is from 0.0 to 1.0. Weights for Form Metrics sum to 1.0. Weights for PSV Sub-Metrics sum to 1.0 and each must be > 0.0. The specific formula is described mathematically below. The baseline weights are defined in the versioned YAML definition file.
+
+$$\text{a. WeightedSumFormMetrics} = \sum_{f \in F} \text{Score}_f \times \text{Weight}_f\qquad \text{where}\quad F = \\{\text{TSR}, \text{QGS}, \text{RI}, \text{CAG}, \text{ICS}, \text{RD}, \text{FPT}\\}$$
+
+$$\text{b. WeightedProductPSVScore} = \prod_{p \in P} \text{Score}_p ^ {\text{Weight}_p}\qquad\text{where}\quad P = \\{\text{CC}, \text{MCF}, \text{CD}, \text{TRF}, \text{TOS}, \text{ICSafety}, \text{FAS}\\}$$
+
+$$\text{and c. OverallScore} = \text{WeightedSumFormMetrics} \times \text{WeightedProductPSVScore}$$
 
 ## Metrics
 ### Core Metrics
@@ -154,7 +160,7 @@ This document includes the initial conceptual scoring rubrics for each core metr
     * 0.0: No discernible output format is implied or requested. Output would be completely unstructured or nonsensical regarding format.
 
 ### PSV Sub-Metrics (Focus on Validity, Feasibility, and Outcome Appropriateness)
-These metrics assess fundamental aspects of the user prompt's request that determine its validity, feasibility for an LLM to yield a reliable outcome, and appropriateness. A score of 0.0 in any PSV sub-metric indicates a fundamental and critical failure on that dimension, which, via the geometric mean formula, results in a Composite PSV Score of 0.0 and thus an Overall Score of 0.0. Scores > 0.0 reflect varying degrees of partial validity/appropriateness.
+These metrics assess fundamental aspects of the user prompt's request that determine its validity, feasibility for an LLM to yield a reliable outcome, and appropriateness. A score of 0.0 in any PSV sub-metric indicates a fundamental and critical failure on that dimension, which, via the geometric mean formula, results in a Weighted Product PSV Score of 0.0 and thus an Overall Score of 0.0. Scores > 0.0 reflect varying degrees of partial validity/appropriateness.
 
 1. Conceptual Coherence (CC)
 
