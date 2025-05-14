@@ -16,6 +16,11 @@ Description
 3. This minimizes subjective interpretation and, where possible, enables algorithmic or highly structured evaluation.
 4. The initial conceptual rubrics provide a basis, but require empirical validation and refinement via this enhancement.
 
+Suggestion
+- To achieve consistent and replicable proposal scoring using an LLM, a detailed scoring framework (or scaffold) is necessary.
+- This framework should break down assessment criteria into granular checks and may incorporate techniques like ablation testing to objectively weigh different proposal elements.
+- The goal is to ensure consistency within the same LLM (intra-LLM consistency), allowing for reliable and replicable scoring.
+
 Depends on: [Universal Weight Determination Methodology] (Rubric stringency may depend on relative metric importance)
 
 ## LLM-Specific Calibration Resources
