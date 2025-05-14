@@ -43,7 +43,7 @@ To understand and apply the LUPES framework, begin by exploring the core documen
 ## Documentation
 - [LUPES Whitepaper](LUPES_Whitepaper.md)
 - [LUPES YAML Definition](lupes_latest.yaml)
-- [Changelog](CHANGELOG.md)
+- [Changelog](Changelog.md)
 - [Proposed Enhancements](Proposed_Enhancements.md)
 
 ## License
