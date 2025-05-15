@@ -185,10 +185,6 @@ metrics:
             No discernible output format is implied or requested. Output would be completely unstructured or nonsensical regarding format.
 
   psv_sub_metrics:
-    description: |
-      These metrics assess fundamental aspects of the user prompt's request that determine its validity, feasibility for an LLM to yield a reliable outcome, and appropriateness.
-      A score of 0.0 in any PSV sub-metric indicates a fundamental and critical failure on that dimension, which, via the geometric mean formula, results in a Weighted Product PSV Score of 0.0 and thus an Overall Score of 0.0.
-      Scores > 0.0 reflect varying degrees of partial validity/appropriateness.
     - name: CC
       full_name: Conceptual Coherence
       description: Measures the internal logical consistency and meaningfulness of the concepts, entities, and their relationships as expressed in the user prompt. A score of 0.0 indicates fundamental semantic or logical incoherence.
